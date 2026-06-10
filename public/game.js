@@ -86,7 +86,7 @@ const taggingStrategySelect = document.getElementById('tagging-strategy');
 
 // Visualization elements
 const clusterCanvas = document.getElementById('cluster-canvas');
-const ctx = clusterCanvas.getContext('2d');
+const ctx = clusterCanvas ? clusterCanvas.getContext('2d') : null;
 const addPodBtn = document.getElementById('add-pod-btn');
 const startSimulationBtn = document.getElementById('start-simulation-btn');
 const resetVizBtn = document.getElementById('reset-viz-btn');
@@ -146,11 +146,11 @@ function renderQuestion(index) {
     choicesContainer.appendChild(button);
   });
 }
-    text: 'What is one advantage of ECS over EKS for talking points?',
+
 function selectChoice(choice, selectedButton) {
   explanationText.textContent = choice.explain;
   const buttons = choicesContainer.querySelectorAll('button');
-      { label: 'ECS integrates directly with AWS Fargate and Service Discovery with less operational overhead', correct: true, explain: 'Correct. ECS can be easier to operate and integrates tightly with AWS Fargate, making it useful to mention when discussing container service options.' }
+  buttons.forEach(button => {
     button.disabled = true;
     if (button === selectedButton) {
       button.classList.add(choice.correct ? 'correct' : 'wrong');
@@ -718,6 +718,7 @@ function killPod(podId) {
 }
 
 function renderPods() {
+  if (!podsList) return;
   podsList.innerHTML = '';
   
   if (pods.length === 0) {
@@ -772,6 +773,7 @@ function viewPodLogs(podId) {
 }
 
 function drawCluster() {
+  if (!ctx || !clusterCanvas) return;
   const width = clusterCanvas.width;
   const height = clusterCanvas.height;
   
@@ -919,7 +921,7 @@ nodeGroupTypeRadios.forEach(radio => {
 });
 
 // Toggle autoscaling options visibility
-autoscalingCheckbox.addEventListener('change', (e) => {
+autoscalingCheckbox?.addEventListener('change', (e) => {
   if (e.target.checked) {
     autoscalingOptionsDiv.style.display = 'block';
   } else {
@@ -949,8 +951,8 @@ reduceLoadBtn?.addEventListener('click', () => {
 });
 
 // Main buttons
-nextButton.addEventListener('click', nextQuestion);
-resetButton.addEventListener('click', resetGame);
+nextButton?.addEventListener('click', nextQuestion);
+resetButton?.addEventListener('click', resetGame);
 
 function startSimulationLoop() {
   simulationRunning = true;
@@ -969,7 +971,7 @@ function stopSimulationLoop() {
   }
 }
 
-simulateButton.addEventListener('click', () => {
+simulateButton?.addEventListener('click', () => {
   const config = {
     clusterName: clusterNameInput.value.trim(),
     region: regionSelect.value,
@@ -1002,7 +1004,7 @@ simulateButton.addEventListener('click', () => {
   drawCluster();
 });
 
-clearSimButton.addEventListener('click', () => {
+clearSimButton?.addEventListener('click', () => {
   stopSimulationLoop();
   clearSimulation();
   // Clear self-managed options
@@ -1025,8 +1027,8 @@ clearSimButton.addEventListener('click', () => {
 });
 
 // Visualization controls
-addPodBtn.addEventListener('click', addPod);
-startSimulationBtn.addEventListener('click', async () => {
+addPodBtn?.addEventListener('click', addPod);
+startSimulationBtn?.addEventListener('click', async () => {
   if (nodes.length === 0) {
     alert('Please run "Simulate EKS Deployment" first to initialize the cluster.');
     return;
@@ -1052,7 +1054,7 @@ startSimulationBtn.addEventListener('click', async () => {
   startSimulationLoop();
 });
 
-resetVizBtn.addEventListener('click', () => {
+resetVizBtn?.addEventListener('click', () => {
   stopSimulationLoop();
   pods = [];
   nodes = [];
