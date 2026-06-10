@@ -503,6 +503,15 @@ function applyLoadData(loadData, action = 'Updated') {
   currentLoadData = loadData;
   loadSummary.innerHTML = `${action} load: ${loadData.clusterCpuLoad.toFixed(0)}% CPU, ${loadData.clusterMemoryLoad.toFixed(0)}% memory from ${loadData.calls} workload call(s).`;
   addHistoryEntry(`${action} cluster load to ${loadData.clusterCpuLoad.toFixed(0)}% CPU / ${loadData.clusterMemoryLoad.toFixed(0)}% memory`);
+
+  if (nodes.length > 0 && action === 'Increased' && loadData.clusterCpuLoad > 55) {
+    const extraPods = Math.min(3, Math.max(1, Math.floor((loadData.clusterCpuLoad - 50) / 10)));
+    for (let i = 0; i < extraPods; i += 1) {
+      addPod();
+    }
+    addHistoryEntry(`Added ${extraPods} extra workload pod(s) to reflect higher external traffic.`);
+  }
+
   renderClusterProcesses();
 }
 
@@ -537,6 +546,13 @@ function addPod() {
   drawCluster();
 }
 
+function runClusterUpdateCycle() {
+  updateClusterLoad();
+  checkAutoScaling();
+  renderPods();
+  drawCluster();
+}
+
 function updateClusterLoad() {
   // Update pod loads
   pods.forEach(pod => {
@@ -547,12 +563,15 @@ function updateClusterLoad() {
 
   // External API load contribution
   if (currentLoadData) {
+    const apiCpuImpact = Math.max(0, currentLoadData.clusterCpuLoad - 30) * 0.18;
+    const apiMemImpact = Math.max(0, currentLoadData.clusterMemoryLoad - 30) * 0.12;
+
     pods.forEach(pod => {
       if (pod.status !== 'running') return;
-      const apiLoad = (currentLoadData.clusterCpuLoad - 30) * 0.08;
-      const memLoad = (currentLoadData.clusterMemoryLoad - 30) * 0.05;
-      pod.cpuUsage = Math.min(95, pod.cpuUsage + apiLoad);
-      pod.memoryUsage = Math.min(95, pod.memoryUsage + memLoad);
+      const noiseCpu = (Math.random() - 0.5) * 3;
+      const noiseMem = (Math.random() - 0.5) * 2;
+      pod.cpuUsage = Math.min(95, Math.max(5, pod.cpuUsage + apiCpuImpact + noiseCpu));
+      pod.memoryUsage = Math.min(95, Math.max(10, pod.memoryUsage + apiMemImpact + noiseMem));
     });
   }
 
@@ -889,6 +908,9 @@ generateLoadBtn?.addEventListener('click', async () => {
   const loadData = await fetchLoadData(loadCallCount);
   if (loadData) {
     applyLoadData(loadData, 'Increased');
+    if (nodes.length > 0) {
+      runClusterUpdateCycle();
+    }
   } else {
     loadSummary.textContent = 'Unable to generate simulated load. Check the backend API.';
   }
@@ -897,6 +919,9 @@ generateLoadBtn?.addEventListener('click', async () => {
 reduceLoadBtn?.addEventListener('click', () => {
   const reducedLoad = createReducedLoad();
   applyLoadData(reducedLoad, 'Reduced');
+  if (nodes.length > 0) {
+    runClusterUpdateCycle();
+  }
 });
 
 // Main buttons
@@ -907,10 +932,7 @@ function startSimulationLoop() {
   simulationRunning = true;
   simulationInterval = setInterval(() => {
     if (pods.length > 0) {
-      updateClusterLoad();
-      checkAutoScaling();
-      renderPods();
-      drawCluster();
+      runClusterUpdateCycle();
     }
   }, 1000); // Update every 1 second
 }
