@@ -1,0 +1,15 @@
+{
+  "name": "eksv-ecs-game",
+  "version": "1.0.0",
+  "description": "Interactive learning game comparing AWS EKS and ECS with common cluster setup challenges.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["eks", "ecs", "aws", "game", "learning", "nodejs"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.4"
+  }
+}
