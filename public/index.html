@@ -47,6 +47,237 @@
       <h2>Why this matters</h2>
       <p>Amazon EKS is Kubernetes-managed on AWS, while ECS is a container orchestration service with native AWS integration. Understanding the differences helps you choose the right service, plan cluster setup, and avoid common deployment pitfalls.</p>
     </section>
+
+    <section class="simulation">
+      <div class="simulation-panel">
+        <h2>EKS Deployment Simulator</h2>
+        <p>Choose cluster parameters and simulate an EKS deployment path. This helps you understand how network, IAM, node groups, and Fargate decisions affect cluster readiness.</p>
+
+        <form id="simulation-form">
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cluster-name">Cluster name <span class="tooltip" title="Name for your EKS cluster - used to identify it in AWS">?</span></label>
+              <input id="cluster-name" type="text" placeholder="example-eks-cluster" />
+              <small class="field-hint">Unique identifier for your cluster</small>
+            </div>
+            <div class="field-group">
+              <label for="region">Region <span class="tooltip" title="AWS region where your cluster will be deployed">?</span></label>
+              <select id="region">
+                <option value="">Select region</option>
+                <option value="us-east-1">us-east-1</option>
+                <option value="us-west-2">us-west-2</option>
+                <option value="eu-west-1">eu-west-1</option>
+              </select>
+              <small class="field-hint">Affects availability, latency, and compliance</small>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="k8s-version">Kubernetes version <span class="tooltip" title="EKS supports specific Kubernetes versions. Choose a version compatible with your applications">?</span></label>
+              <select id="k8s-version">
+                <option value="">Select version</option>
+                <option value="1.29">1.29</option>
+                <option value="1.28">1.28</option>
+                <option value="1.27">1.27</option>
+              </select>
+              <small class="field-hint">Latest version recommended for new clusters</small>
+            </div>
+            <div class="field-group">
+              <label for="subnet-type">Subnet type <span class="tooltip" title="Private: Better security. Public: Direct internet access (not recommended for production)">?</span></label>
+              <select id="subnet-type">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+              <small class="field-hint">Private subnets recommended for production</small>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label>Node group type <span class="tooltip" title="Managed: AWS handles lifecycle. Self-managed: You manage EC2 instances">?</span></label>
+              <div class="radio-group">
+                <label><input type="radio" name="node-group-type" value="managed" checked /> Managed</label>
+                <label><input type="radio" name="node-group-type" value="self-managed" /> Self-managed</label>
+              </div>
+              <small class="field-hint">Managed is easier, self-managed gives more control</small>
+            </div>
+            <div class="field-group">
+              <label for="instance-type">Instance type <span class="tooltip" title="t3: Burstable (dev/test). m5: General purpose. c6i: Compute optimized">?</span></label>
+              <select id="instance-type">
+                <option value="t3.medium">t3.medium</option>
+                <option value="m5.large">m5.large</option>
+                <option value="c6i.large">c6i.large</option>
+              </select>
+              <small class="field-hint">Choose based on workload type</small>
+            </div>
+          </div>
+
+          <div id="self-managed-options" class="self-managed-options" style="display: none;">
+            <h4>Self-Managed Node Group Configuration</h4>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="asg-min">ASG Min Size</label>
+                <input id="asg-min" type="number" min="1" value="1" />
+              </div>
+              <div class="field-group">
+                <label for="asg-max">ASG Max Size</label>
+                <input id="asg-max" type="number" min="1" value="5" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="custom-ami">Custom AMI ID (optional)</label>
+                <input id="custom-ami" type="text" placeholder="ami-xxxxxxxxx" />
+              </div>
+              <div class="field-group">
+                <label for="bootstrap-args">Bootstrap Arguments (optional)</label>
+                <input id="bootstrap-args" type="text" placeholder="--container-runtime containerd" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group checkbox-group">
+                <label><input id="enable-ssm" type="checkbox" checked /> Enable SSM access</label>
+                <label><input id="enable-ebs-optimization" type="checkbox" /> EBS optimization</label>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="update-strategy">Update Strategy</label>
+                <select id="update-strategy">
+                  <option value="rolling">Rolling</option>
+                  <option value="blue-green">Blue-Green</option>
+                  <option value="in-place">In-Place</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="tagging-strategy">Tagging Strategy</label>
+                <select id="tagging-strategy">
+                  <option value="basic">Basic (Name, Environment)</option>
+                  <option value="extended">Extended (Add Managed, Version)</option>
+                  <option value="custom">Custom Tags</option>
+                </select>
+              </div>
+            </div>
+            <div class="self-managed-details">
+              <h5>What these self-managed attributes do</h5>
+              <ul>
+                <li><strong>ASG Min/Max Size:</strong> Defines the scaling window for EC2 worker nodes in the auto scaling group.</li>
+                <li><strong>Custom AMI ID:</strong> Lets you choose a custom VM image with your operating system and Kubernetes bootstrap tooling.</li>
+                <li><strong>Bootstrap Arguments:</strong> Pass extra kubelet or container runtime configuration at node startup.</li>
+                <li><strong>SSM access:</strong> Enables AWS Systems Manager for secure node troubleshooting without SSH.</li>
+                <li><strong>EBS optimization:</strong> Improves disk throughput for I/O-heavy workloads on EC2 nodes.</li>
+                <li><strong>Update strategy:</strong> Controls how rolling updates are applied to your self-managed nodes.</li>
+                <li><strong>Tagging strategy:</strong> Helps you track nodes by environment, version, and management status.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="node-count">Desired node count <span class="tooltip" title="Starting number of nodes. If autoscaling is enabled, this is the minimum">?</span></label>
+              <input id="node-count" type="number" min="0" value="3" />
+              <small class="field-hint">Minimum nodes for high availability</small>
+            </div>
+            <div class="field-group checkbox-group">
+              <label><input id="use-fargate" type="checkbox" /> Use AWS Fargate profile</label>
+              <label><input id="iam-role" type="checkbox" checked /> IAM role configured</label>
+              <label><input id="irsa" type="checkbox" checked /> IRSA service account enabled</label>
+              <label><input id="autoscaling" type="checkbox" /> Enable cluster autoscaling</label>
+            </div>
+          </div>
+
+          <div id="autoscaling-options" class="autoscaling-options" style="display: none;">
+            <h4>⚙️ Autoscaling Configuration</h4>
+            <p class="field-hint">Configure how your cluster automatically scales based on resource demand</p>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="autoscale-min">Min Nodes <span class="tooltip" title="Minimum number of nodes to maintain">?</span></label>
+                <input id="autoscale-min" type="number" min="1" value="2" />
+              </div>
+              <div class="field-group">
+                <label for="autoscale-max">Max Nodes <span class="tooltip" title="Maximum nodes the cluster can scale to">?</span></label>
+                <input id="autoscale-max" type="number" min="1" value="10" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="cpu-threshold-scale-up">Scale Up CPU Threshold <span class="tooltip" title="If avg CPU exceeds this %, add nodes">?</span></label>
+                <input id="cpu-threshold-scale-up" type="number" min="50" max="100" value="75" />
+                <small class="field-hint">Percentage (50-100%)</small>
+              </div>
+              <div class="field-group">
+                <label for="cpu-threshold-scale-down">Scale Down CPU Threshold <span class="tooltip" title="If avg CPU is below this %, remove nodes">?</span></label>
+                <input id="cpu-threshold-scale-down" type="number" min="10" max="50" value="30" />
+                <small class="field-hint">Percentage (10-50%)</small>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="scale-up-cooldown">Scale Up Cooldown (seconds) <span class="tooltip" title="Wait time before next scale up action">?</span></label>
+                <input id="scale-up-cooldown" type="number" min="30" max="600" value="120" />
+              </div>
+              <div class="field-group">
+                <label for="scale-down-cooldown">Scale Down Cooldown (seconds) <span class="tooltip" title="Wait time before next scale down action">?</span></label>
+                <input id="scale-down-cooldown" type="number" min="60" max="900" value="300" />
+              </div>
+            </div>
+          </div>
+          <div class="field-row load-options">
+            <div class="field-group">
+              <label for="load-calls">Load call count <span class="tooltip" title="How many synthetic workload calls to simulate">?</span></label>
+              <input id="load-calls" type="number" min="1" max="20" value="1" />
+              <small class="field-hint">Each request raises simulated cluster load and can trigger autoscaling.</small>
+            </div>
+            <div class="field-group" style="align-self: end;">
+              <button id="generate-load-btn" type="button" class="btn-secondary">Generate Load</button>
+            </div>
+          </div>
+          <div id="load-summary" class="load-summary"></div>
+        </form>
+
+        <div class="actions">
+          <button id="simulate-btn">Simulate EKS Deployment</button>
+          <button id="clear-sim-btn" type="button">Reset simulator</button>
+        </div>
+
+        <div class="simulation-results">
+          <h3>Simulation result</h3>
+          <p id="simulation-summary">Complete the form and run the simulation to see the cluster readiness check.</p>
+          <ul id="simulation-tips" class="tips-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="visualization">
+      <div class="visualization-panel">
+        <h2>Cluster Visualization</h2>
+        <p>Visual representation of your EKS cluster, nodes, and running pods.</p>
+        
+        <div class="viz-controls">
+          <button id="add-pod-btn" class="btn-secondary">+ Add Pod</button>
+          <button id="start-simulation-btn" class="btn-secondary">Start Simulation</button>
+          <button id="reset-viz-btn" class="btn-secondary">Reset Visualization</button>
+        </div>
+
+        <div class="cluster-processes-panel">
+          <h3>Cluster processes</h3>
+          <div id="cluster-processes" class="process-grid"></div>
+          <div id="cluster-load-info" class="field-hint" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="cluster-canvas" width="900" height="500"></canvas>
+        </div>
+
+        <div class="pod-management">
+          <h3>Pod Management</h3>
+          <div id="pods-list" class="pods-grid">
+            <p style="grid-column: 1/-1; text-align: center; color: #999;">No pods running yet. Click "Start Simulation" or "Add Pod" to begin.</p>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script src="game.js"></script>
