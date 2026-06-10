@@ -1,15 +1,15 @@
 # EKS vs ECS Interactive Learning Game
 
-A local Node.js web app that teaches the differences between AWS EKS and ECS, common EKS cluster setup challenges, and pitfalls to avoid. Ideal for interview preparation and developer learning.
+A local Node.js web app that teaches the differences between AWS EKS and ECS, common EKS cluster setup challenges, and pitfalls to avoid. Ideal for developer learning and preparation.
 
 ## Run locally
 
 1. Open a terminal in `c:\Projects\EKSvECSGame`
 2. Run `npm install`
 3. Start the app with `npm start`
-4. Open `http://localhost:3000` in your browser
+4. Open `http://localhost:3001` in your browser (the app is served on port `3001` by default in this workspace)
 
-> Note: The simulator uses a backend API at `/api/load`. If you serve the page from a different local port, the app will attempt to fall back to `http://localhost:3000/api/load`.
+> Note: The simulator uses a backend API at `/api/load`. If you serve the page from a different local port, the app will attempt to fall back to `http://localhost:3001/api/load`.
 
 ## Runtime load demo
 

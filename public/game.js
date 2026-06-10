@@ -33,10 +33,10 @@ const questions = [
   },
   {
     title: 'Question 5',
-    text: 'What is one advantage of ECS over EKS for interview-ready talking points?',
+    text: 'What is one advantage of ECS over EKS for talking points?',
     choices: [
       { label: 'ECS uses Kubernetes manifests natively', correct: false, explain: 'ECS does not use Kubernetes manifests. That is an advantage of EKS, not ECS.' },
-      { label: 'ECS integrates directly with AWS Fargate and Service Discovery with less operational overhead', correct: true, explain: 'Correct. ECS can be easier to operate and integrates tightly with AWS Fargate, making it useful to mention in interviews.' }
+      { label: 'ECS integrates directly with AWS Fargate and Service Discovery with less operational overhead', correct: true, explain: 'Correct. ECS can be easier to operate and integrates tightly with AWS Fargate, making it useful to mention when discussing container service options.' }
     ]
   },
   {
@@ -146,11 +146,11 @@ function renderQuestion(index) {
     choicesContainer.appendChild(button);
   });
 }
-
+    text: 'What is one advantage of ECS over EKS for talking points?',
 function selectChoice(choice, selectedButton) {
   explanationText.textContent = choice.explain;
   const buttons = choicesContainer.querySelectorAll('button');
-  buttons.forEach(button => {
+      { label: 'ECS integrates directly with AWS Fargate and Service Discovery with less operational overhead', correct: true, explain: 'Correct. ECS can be easier to operate and integrates tightly with AWS Fargate, making it useful to mention when discussing container service options.' }
     button.disabled = true;
     if (button === selectedButton) {
       button.classList.add(choice.correct ? 'correct' : 'wrong');
@@ -173,8 +173,8 @@ function nextQuestion() {
 
 function resetGame() {
   currentQuestionIndex = -1;
-  questionTitle.textContent = 'Ready to play?';
-  questionText.textContent = 'Click "Next question" to begin.';
+  questionTitle.textContent = '';
+  questionText.textContent = '';
   explanationText.textContent = 'Answers and explanations will appear here after you choose an option.';
   choicesContainer.innerHTML = '';
 }
