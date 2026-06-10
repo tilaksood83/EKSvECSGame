@@ -9,6 +9,8 @@ A local Node.js web app that teaches the differences between AWS EKS and ECS, co
 3. Start the app with `npm start`
 4. Open `http://localhost:3000` in your browser
 
+> Note: The simulator uses a backend API at `/api/load`. If you serve the page from a different local port, the app will attempt to fall back to `http://localhost:3000/api/load`.
+
 ## Runtime load demo
 
 - Use the `Generate Load` button to simulate external traffic and increase cluster CPU/memory pressure.
