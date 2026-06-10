@@ -229,8 +229,9 @@
               <input id="load-calls" type="number" min="1" max="20" value="1" />
               <small class="field-hint">Each request raises simulated cluster load and can trigger autoscaling.</small>
             </div>
-            <div class="field-group" style="align-self: end;">
+            <div class="field-group" style="align-self: end; display:flex; gap:12px; flex-wrap:wrap;">
               <button id="generate-load-btn" type="button" class="btn-secondary">Generate Load</button>
+              <button id="reduce-load-btn" type="button" class="btn-secondary">Reduce Load</button>
             </div>
           </div>
           <div id="load-summary" class="load-summary"></div>
@@ -264,6 +265,12 @@
           <h3>Cluster processes</h3>
           <div id="cluster-processes" class="process-grid"></div>
           <div id="cluster-load-info" class="field-hint" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="history-panel">
+          <h3>Cluster event history</h3>
+          <div id="history-summary" class="field-hint">Recent autoscaling and load events appear here.</div>
+          <ul id="history-list" class="history-list"></ul>
         </div>
 
         <div class="canvas-container">

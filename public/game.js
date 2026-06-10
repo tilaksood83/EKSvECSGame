@@ -106,12 +106,17 @@ const loadSummary = document.getElementById('load-summary');
 
 const clusterProcessesDiv = document.getElementById('cluster-processes');
 const clusterLoadInfo = document.getElementById('cluster-load-info');
+const reduceLoadBtn = document.getElementById('reduce-load-btn');
+const historyList = document.getElementById('history-list');
+const historySummary = document.getElementById('history-summary');
 
 // Pod management
 let pods = [];
 let nodes = [];
 let clusterConfig = null;
 let autoscalingConfig = null;
+let historyEntries = [];
+let historyUpdateCounter = 0;
 let lastScaleUpTime = 0;
 let lastScaleDownTime = 0;
 let simulationRunning = false;
@@ -297,6 +302,9 @@ function clearSimulation() {
   autoscalingCheckbox.checked = false;
   simulationSummary.textContent = 'Complete the form and run the simulation to see the cluster readiness check.';
   simulationTips.innerHTML = '';
+  loadSummary.textContent = '';
+  historyEntries = [];
+  renderHistory();
 }
 
 // ===== VISUALIZATION AND POD MANAGEMENT =====
@@ -417,6 +425,8 @@ function initializeCluster() {
 
   loadCallCount = Number(loadCallsInput?.value) || 1;
   currentLoadData = null;
+  historyEntries = [];
+  historyUpdateCounter = 0;
   clusterProcesses = [
     { name: 'kubelet', status: 'running' },
     { name: 'kube-proxy', status: 'running' },
@@ -427,6 +437,7 @@ function initializeCluster() {
 
   lastScaleUpTime = 0;
   lastScaleDownTime = 0;
+  addHistoryEntry(`Initialized cluster with ${nodeCount} node(s) and autoscaling ${autoscalingCheckbox.checked ? 'enabled' : 'disabled'}`);
 }
 
 async function fetchLoadData(calls) {
@@ -461,6 +472,50 @@ function renderClusterProcesses() {
       ? `Simulated external load: ${currentLoadData.clusterCpuLoad.toFixed(0)}% CPU, ${currentLoadData.clusterMemoryLoad.toFixed(0)}% memory from ${currentLoadData.calls} workload calls.`
       : 'No external API load generated yet. Use Generate Load to simulate incoming traffic.';
   }
+}
+
+function addHistoryEntry(message) {
+  const timestamp = new Date();
+  historyEntries.unshift({ timestamp, message });
+  if (historyEntries.length > 20) {
+    historyEntries.pop();
+  }
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!historyList) return;
+  historyList.innerHTML = '';
+  if (historyEntries.length === 0) {
+    historyList.innerHTML = '<li>No cluster events yet. Start the simulation and generate load.</li>';
+    return;
+  }
+
+  historyEntries.forEach(entry => {
+    const item = document.createElement('li');
+    item.innerHTML = `<strong>${entry.message}</strong><span>${entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>`;
+    historyList.appendChild(item);
+  });
+}
+
+function applyLoadData(loadData, action = 'Updated') {
+  if (!loadData) return;
+  currentLoadData = loadData;
+  loadSummary.innerHTML = `${action} load: ${loadData.clusterCpuLoad.toFixed(0)}% CPU, ${loadData.clusterMemoryLoad.toFixed(0)}% memory from ${loadData.calls} workload call(s).`;
+  addHistoryEntry(`${action} cluster load to ${loadData.clusterCpuLoad.toFixed(0)}% CPU / ${loadData.clusterMemoryLoad.toFixed(0)}% memory`);
+  renderClusterProcesses();
+}
+
+function createReducedLoad() {
+  const cpu = Math.max(10, (currentLoadData?.clusterCpuLoad || 25) - 25 + Math.floor(Math.random() * 5));
+  const memory = Math.max(10, (currentLoadData?.clusterMemoryLoad || 20) - 20 + Math.floor(Math.random() * 5));
+  return {
+    calls: Math.max(1, (currentLoadData?.calls || 1) - 1),
+    clusterCpuLoad: cpu,
+    clusterMemoryLoad: memory,
+    detailLoads: [{ request: 1, cpuDelta: Math.max(5, cpu - 10), memoryDelta: Math.max(8, memory - 10) }],
+    generatedAt: new Date().toISOString()
+  };
 }
 
 function addPod() {
@@ -501,9 +556,10 @@ function updateClusterLoad() {
     });
   }
 
-  // Calculate node average loads
+  // Calculate node average loads and pod counts
   nodes.forEach(node => {
     const nodePods = pods.filter(p => p.node.id === node.id && p.status === 'running');
+    node.podCount = nodePods.length;
     node.calculateAverageLoad(nodePods);
   });
 
@@ -521,6 +577,11 @@ function updateClusterLoad() {
     }
     return { ...proc, status: 'running' };
   });
+
+  historyUpdateCounter += 1;
+  if (historyUpdateCounter % 5 === 0) {
+    addHistoryEntry(`Cluster load snapshot: ${clusterAvgCpu.toFixed(0)}% avg CPU across ${nodes.length} node(s)`);
+  }
 
   renderClusterProcesses();
 }
@@ -552,22 +613,40 @@ function scaleUpCluster() {
   if (nodes.length >= autoscalingConfig.maxNodes) return;
 
   const nodeGroupType = nodes[0]?.nodeGroupType || 'managed';
-  const newNode = new Node(nodes.length, `node-${nodes.length + 1}`, nodeGroupType);
+  const nextNodeId = nodes.reduce((max, node) => Math.max(max, node.id), -1) + 1;
+  const newNode = new Node(nextNodeId, `node-${nextNodeId + 1}`, nodeGroupType);
   newNode.scaledUpReason = 'High CPU usage detected';
   nodes.push(newNode);
-
+  addHistoryEntry(`Scaled up cluster: added ${newNode.name} due to sustained high CPU`);
   console.log('SCALED UP: Added new node due to high CPU usage');
 }
 
 function scaleDownCluster() {
   if (nodes.length <= autoscalingConfig.minNodes) return;
 
-  // Don't remove nodes with running pods
-  const nodeToRemove = nodes.find(n => n.podCount === 0);
+  // Prefer removing an idle node first
+  let nodeToRemove = nodes.find(n => n.podCount === 0);
+
+  if (!nodeToRemove) {
+    // If no idle node exists, consolidate the lowest load node
+    nodeToRemove = nodes.reduce((candidate, node) => {
+      if (!candidate) return node;
+      return node.avgCpuUsage < candidate.avgCpuUsage ? node : candidate;
+    }, null);
+  }
+
   if (!nodeToRemove) return;
 
+  const remainingNode = nodes.find(n => n.id !== nodeToRemove.id);
+  if (remainingNode) {
+    pods.filter(p => p.node.id === nodeToRemove.id).forEach(pod => {
+      pod.node = remainingNode;
+    });
+  }
+
   nodes = nodes.filter(n => n.id !== nodeToRemove.id);
-  console.log('SCALED DOWN: Removed idle node due to low CPU usage');
+  addHistoryEntry(`Scaled down cluster: removed ${nodeToRemove.name} and consolidated workloads`);
+  console.log('SCALED DOWN: Removed node due to low CPU usage');
 }
 
 function killPod(podId) {
@@ -809,11 +888,15 @@ generateLoadBtn?.addEventListener('click', async () => {
   loadCallCount = Number(loadCallsInput.value) || 1;
   const loadData = await fetchLoadData(loadCallCount);
   if (loadData) {
-    loadSummary.innerHTML = `Loaded ${loadData.calls} API calls: ${loadData.clusterCpuLoad.toFixed(0)}% CPU and ${loadData.clusterMemoryLoad.toFixed(0)}% memory impact.`;
+    applyLoadData(loadData, 'Increased');
   } else {
     loadSummary.textContent = 'Unable to generate simulated load. Check the backend API.';
   }
-  renderClusterProcesses();
+});
+
+reduceLoadBtn?.addEventListener('click', () => {
+  const reducedLoad = createReducedLoad();
+  applyLoadData(reducedLoad, 'Reduced');
 });
 
 // Main buttons
@@ -874,6 +957,7 @@ simulateButton.addEventListener('click', () => {
 });
 
 clearSimButton.addEventListener('click', () => {
+  stopSimulationLoop();
   clearSimulation();
   // Clear self-managed options
   asgMinInput.value = '1';
@@ -888,6 +972,8 @@ clearSimButton.addEventListener('click', () => {
   // Clear visualization
   pods = [];
   nodes = [];
+  historyEntries = [];
+  renderHistory();
   drawCluster();
   renderPods();
 });
@@ -904,11 +990,12 @@ startSimulationBtn.addEventListener('click', async () => {
   if (!currentLoadData && loadCallCount > 1) {
     const loadData = await fetchLoadData(loadCallCount);
     if (loadData) {
-      loadSummary.innerHTML = `Loaded ${loadData.calls} API calls: ${loadData.clusterCpuLoad.toFixed(0)}% CPU and ${loadData.clusterMemoryLoad.toFixed(0)}% memory impact.`;
+      applyLoadData(loadData, 'Loaded');
     }
-    renderClusterProcesses();
   }
   
+  addHistoryEntry('Started runtime simulation and autoscaling loop.');
+
   // Add 3-5 random pods
   const podCount = Math.floor(Math.random() * 3) + 3;
   for (let i = 0; i < podCount; i++) {
@@ -924,6 +1011,8 @@ resetVizBtn.addEventListener('click', () => {
   pods = [];
   nodes = [];
   clusterConfig = null;
+  historyEntries = [];
+  renderHistory();
   drawCluster();
   renderPods();
 });
@@ -934,3 +1023,4 @@ clearSimulation();
 drawCluster();
 renderClusterProcesses();
 renderPods();
+renderHistory();
