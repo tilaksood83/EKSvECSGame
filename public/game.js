@@ -504,15 +504,17 @@ function applyLoadData(loadData, action = 'Updated') {
   loadSummary.innerHTML = `${action} load: ${loadData.clusterCpuLoad.toFixed(0)}% CPU, ${loadData.clusterMemoryLoad.toFixed(0)}% memory from ${loadData.calls} workload call(s).`;
   addHistoryEntry(`${action} cluster load to ${loadData.clusterCpuLoad.toFixed(0)}% CPU / ${loadData.clusterMemoryLoad.toFixed(0)}% memory`);
 
-  if (nodes.length > 0 && action === 'Increased' && loadData.clusterCpuLoad > 55) {
-    const extraPods = Math.min(3, Math.max(1, Math.floor((loadData.clusterCpuLoad - 50) / 10)));
+  if (nodes.length > 0 && action === 'Increased') {
+    const extraPods = Math.min(5, Math.max(1, Math.floor((loadData.clusterCpuLoad - 40) / 12)));
     for (let i = 0; i < extraPods; i += 1) {
       addPod();
     }
     addHistoryEntry(`Added ${extraPods} extra workload pod(s) to reflect higher external traffic.`);
   }
 
-  renderClusterProcesses();
+  if (nodes.length > 0) {
+    runClusterUpdateCycle();
+  }
 }
 
 function createReducedLoad() {
@@ -563,13 +565,13 @@ function updateClusterLoad() {
 
   // External API load contribution
   if (currentLoadData) {
-    const apiCpuImpact = Math.max(0, currentLoadData.clusterCpuLoad - 30) * 0.18;
-    const apiMemImpact = Math.max(0, currentLoadData.clusterMemoryLoad - 30) * 0.12;
+    const apiCpuImpact = Math.max(0, currentLoadData.clusterCpuLoad - 30) * 0.35;
+    const apiMemImpact = Math.max(0, currentLoadData.clusterMemoryLoad - 30) * 0.18;
 
     pods.forEach(pod => {
       if (pod.status !== 'running') return;
-      const noiseCpu = (Math.random() - 0.5) * 3;
-      const noiseMem = (Math.random() - 0.5) * 2;
+      const noiseCpu = (Math.random() - 0.5) * 6;
+      const noiseMem = (Math.random() - 0.5) * 4;
       pod.cpuUsage = Math.min(95, Math.max(5, pod.cpuUsage + apiCpuImpact + noiseCpu));
       pod.memoryUsage = Math.min(95, Math.max(10, pod.memoryUsage + apiMemImpact + noiseMem));
     });

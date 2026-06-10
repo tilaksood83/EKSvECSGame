@@ -9,6 +9,12 @@ A local Node.js web app that teaches the differences between AWS EKS and ECS, co
 3. Start the app with `npm start`
 4. Open `http://localhost:3000` in your browser
 
+## Runtime load demo
+
+- Use the `Generate Load` button to simulate external traffic and increase cluster CPU/memory pressure.
+- When autoscaling is enabled, the simulator now adds pods and updates node load immediately.
+- The `Cluster event history` panel tracks load changes and scale-up/scale-down decisions.
+
 ## Project structure
 
 - `server.js` - Node.js Express server hosting the static game
